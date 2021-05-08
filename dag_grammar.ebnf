@@ -1,0 +1,85 @@
+@@grammar::Dag
+@@eol_comments :: /#([^\n]*?)$/
+@@ignorecase :: True
+@@whitespace :: /[\t\n\r ]+/
+@@parseinfo :: False
+
+start = dag_identifier params commands $ ;
+
+params = {param}* ;
+
+param = owner | start_date | end_date | retries | retry_delay_sec | schedule_interval ;
+
+owner::DagOwner = 'owner' owner:word ;
+start_date::DagStartDate = 'start date' date:text ;
+end_date = 'end date' date:text ;
+retries = 'retries' text ;
+retry_delay_sec = 'retry delay sec' text ;
+schedule_interval = 'schedule interval' text ;
+
+commands = {command}+ ;
+
+command = copy_table | run_sql_file | run_bash ;
+
+copy_table::CopyTable = 
+    'copy table' source_table:table_name 'from' source_db:source_db 'to' destination_table:table_name ;
+
+run_sql_file::RunSqlFile = 'run sql file' filename:file_name ;
+
+run_bash::RunBash = 'run bash file' filename:file_name ;
+
+dag_identifier::DagId 
+    = 'dag' dag_name:dag_name ;
+
+dag_name = word ; 
+
+table_name = /[a-zA-Z0-9._]+/ ;
+file_name= /[a-zA-Z0-9_]+.sql/ ;
+source_name = text ;
+source_db= text ;
+
+text = word | '"' {word}* '"';
+
+NUMBER = /\d+/ ;
+
+LETTER = /\w/ ;
+word = /\w+/ ;
+
+STRING_LITERAL
+    =
+    (SHORT_STRING | LONG_STRING)
+    ;
+
+SHORT_STRING
+    =
+    "\\'"
+    {STRING_ESCAPE_SEQ | /[^\\\r\n\f']/}
+    /[\'"]/
+    {STRING_ESCAPE_SEQ | /[^\\\r\n\f"]/}
+    '"'
+    ;
+LONG_STRING
+    =
+    | "\\'\\'\\'" [LONG_STRING_ITEM] "\\'\\'\\'"
+    | '"""' [LONG_STRING_ITEM] '"""'
+    ;
+LONG_STRING_ITEM
+    =
+    LONG_STRING_CHAR | STRING_ESCAPE_SEQ
+    ;
+LONG_STRING_CHAR
+    =
+    !'\\\\' /./
+    ;
+STRING_ESCAPE_SEQ
+    =
+    '\\\\' /\w+|\S+/
+    ;
+NON_ZERO_DIGIT
+    =
+    /[1-9]/
+    ;
+DIGIT
+    =
+    /[0-9]/
+    ;
